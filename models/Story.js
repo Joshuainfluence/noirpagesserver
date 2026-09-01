@@ -17,6 +17,7 @@ const storySchema = new mongoose.Schema(
     chapterCount: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
     bookmarkCount: { type: Number, default: 0 },
+        rating: { type: Number, min: 0, max: 5, default: 4.5 },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // admin who uploaded it
   },

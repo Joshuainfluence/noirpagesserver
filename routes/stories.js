@@ -16,7 +16,9 @@ router.get('/', async (req, res) => {
 
   const stories = await Story.find(filter)
     .sort({ createdAt: -1 })
-    .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName');
+    // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName');
+        // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName views');
+            .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName views rating');
 
   res.json(stories);
 });
