@@ -8,6 +8,8 @@ const storySchema = new mongoose.Schema(
     coverImageUrl: { type: String },
 
     authorPenName: { type: String, required: true },
+        categories: [{ type: String, lowercase: true, trim: true }],
+    isFeatured: { type: Boolean, default: false },
     tags: [{ type: String, lowercase: true, trim: true }], // e.g. mafia, enemies-to-lovers
     spiceLevel: { type: Number, min: 1, max: 5, default: 3 },
 

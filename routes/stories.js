@@ -8,9 +8,10 @@ const router = express.Router();
 
 // GET /api/stories  (public library, supports ?tag=&q=&status=)
 router.get('/', async (req, res) => {
-  const { tag, q, status } = req.query;
+    const { tag, category, q, status } = req.query;
   const filter = { isPublished: true };
   if (tag) filter.tags = tag.toLowerCase();
+  if (category) filter.categories = category.toLowerCase();
   if (status) filter.status = status;
   if (q) filter.$text = { $search: q };
 
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
     .sort({ createdAt: -1 })
     // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName');
         // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName views');
-            .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName views rating');
+               .select('title slug coverImageUrl synopsis tags categories isFeatured spiceLevel status chapterCount authorPenName views rating');
 
   res.json(stories);
 });
