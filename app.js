@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -36,4 +37,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // local d
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: err.message });
+});
 module.exports = app;
