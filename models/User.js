@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     providerId: { type: String }, // sub/id from Google or Apple
 
     role: { type: String, enum: ['reader', 'admin'], default: 'reader' },
+        coins: { type: Number, default: 0, min: 0 },
+    lifetimeCoins: { type: Number, default: 0 },
 
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Story' }],
     readingHistory: [

@@ -11,7 +11,9 @@ const storySchema = new mongoose.Schema(
         categories: [{ type: String, lowercase: true, trim: true }],
     isFeatured: { type: Boolean, default: false },
     tags: [{ type: String, lowercase: true, trim: true }], // e.g. mafia, enemies-to-lovers
-    spiceLevel: { type: Number, min: 1, max: 5, default: 3 },
+    // spiceLevel: { type: Number, min: 1, max: 5, default: 3 },
+        premiumFromChapter: { type: Number, default: 0, min: 0 }, // 0 = every chapter is free
+    chapterCoinPrice: { type: Number, default: 0, min: 0 },
 
     status: { type: String, enum: ['ongoing', 'completed', 'hiatus'], default: 'ongoing' },
     isPublished: { type: Boolean, default: false },

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
-
+const { deleteUserData } = require('../services/deleteUser');
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -127,6 +127,21 @@ router.post('/admin-signup', async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Admin signup failed', error: err.message });
   }
+});
+
+
+// POST /api/auth/delete-account  { email, password }  (used by the web deletion page)
+router.post('/delete-account', async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email: (email || '').toLowerCase() });
+  if (!user || !user.passwordHash || !(await bcrypt.compare(password || '', user.passwordHash))) {
+    return res.status(401).json({ message: 'Email or password is incorrect. Signed up with Google? Delete your account inside the app instead.' });
+  }
+  if (user.role === 'admin') {
+    return res.status(403).json({ message: 'Admin accounts must be removed by another admin.' });
+  }
+  await deleteUserData(user._id);
+  res.json({ message: 'Your account and its data have been deleted.' });
 });
 
 module.exports = router;

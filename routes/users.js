@@ -2,7 +2,7 @@ const express = require("express");
 const User = require("../models/User");
 const Story = require("../models/Story");
 const { requireAuth } = require("../middleware/auth");
-
+const { deleteUserData } = require('../services/deleteUser');
 const router = express.Router();
 
 // GET /api/users/me
@@ -43,6 +43,19 @@ router.get("/me/history", requireAuth, async (req, res) => {
     "title slug coverImageUrl",
   );
   res.json(user.readingHistory);
+});
+
+
+
+// DELETE /api/users/me  (used by the in-app Delete account button)
+router.delete('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.user.id).select('role');
+  if (!user) return res.status(404).json({ message: 'Account not found' });
+  if (user.role === 'admin') {
+    return res.status(403).json({ message: 'Admin accounts must be removed by another admin.' });
+  }
+  await deleteUserData(req.user.id);
+  res.json({ message: 'Account deleted' });
 });
 
 module.exports = router;

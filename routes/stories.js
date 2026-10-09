@@ -3,6 +3,8 @@ const Story = require('../models/Story');
 const Chapter = require('../models/Chapter');
 const User = require('../models/User');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const ChapterUnlock = require('../models/ChapterUnlock');
+const { isPremiumChapter } = require('../services/premium');
 
 const router = express.Router();
 
@@ -19,7 +21,10 @@ router.get('/', async (req, res) => {
     .sort({ createdAt: -1 })
     // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName');
         // .select('title slug coverImageUrl synopsis tags spiceLevel status chapterCount authorPenName views');
-               .select('title slug coverImageUrl synopsis tags categories isFeatured spiceLevel status chapterCount authorPenName views rating');
+
+              //  .select('title slug coverImageUrl synopsis tags categories isFeatured spiceLevel status chapterCount authorPenName views rating');
+
+    .select('title slug coverImageUrl synopsis tags categories isFeatured status chapterCount authorPenName views rating premiumFromChapter chapterCoinPrice');
 
   res.json(stories);
 });
@@ -36,7 +41,10 @@ router.get('/:slug', async (req, res) => {
   story.views += 1;
   await story.save();
 
-  res.json({ story, chapters });
+  // res.json({ story, chapters });
+    const price = story.chapterCoinPrice || 0;
+  const chapterList = chapters.map((c) => ({ ...c.toObject(), premium: isPremiumChapter(story, c), price }));
+  res.json({ story, chapters: chapterList });
 });
 
 // GET /api/stories/:slug/chapters/:order  (actual reading content - requires auth)
@@ -50,6 +58,15 @@ router.get('/:slug/chapters/:order', requireAuth, async (req, res) => {
     isPublished: true,
   });
   if (!chapter) return res.status(404).json({ message: 'Chapter not found' });
+
+    if (isPremiumChapter(story, chapter) && req.user.role !== 'admin') {
+    const unlocked = await ChapterUnlock.exists({ user: req.user.id, chapter: chapter._id });
+    if (!unlocked) {
+      return res.status(402).json({
+        locked: true, price: story.chapterCoinPrice, chapterId: chapter._id, title: chapter.title,
+      });
+    }
+  }
 
   // track reading progress
   await User.updateOne(

@@ -11,10 +11,13 @@ const stories = [
       "She was his weakness. He was her darkest secret. A ruthless CEO and the one woman he was never supposed to want.",
     authorPenName: "Nina Vale",
     tags: ["dark romance", "obsession", "billionaire"],
-    spiceLevel: 4,
+    // spiceLevel: 4,
     status: "ongoing",
     coverImageUrl:
       "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&h=900&fit=crop",
+      categories: ['dark romance', 'twisted love'],
+      isFeatured: true
+
   },
   {
     title: "Ruthless Vows",
@@ -23,10 +26,12 @@ const stories = [
       "He promised to protect her. He never promised to be gentle. A marriage of convenience with a mafia heir turns into something neither of them can control.",
     authorPenName: "Bella J.",
     tags: ["dark romance", "mafia", "arranged marriage"],
-    spiceLevel: 5,
+    // spiceLevel: 5,
     status: "ongoing",
     coverImageUrl:
       "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=900&fit=crop",
+      categories: ['dark romance', 'mafia'],
+      isFeatured: true
   },
   {
     title: "Behind Closed Doors",
