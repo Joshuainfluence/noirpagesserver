@@ -53,10 +53,17 @@ function startOfTodayUtc() {
 // GET /api/rewards/ssv  (called by Google's servers, not by the app)
 router.get('/ssv', async (req, res) => {
   try {
+        console.log('SSV callback', {
+      user_id: req.query.user_id,
+      custom_data: req.query.custom_data,
+      transaction_id: req.query.transaction_id,
+    });
     const rawQuery = req.originalUrl.split('?')[1] || '';
     const { signature, key_id, user_id, transaction_id, custom_data } = req.query;
     if (!signature || !key_id || !transaction_id) return res.status(400).send('bad request');
-    if (!(await isValidSignature(rawQuery, signature, key_id))) return res.status(403).send('invalid signature');
+    if (!(await isValidSignature(rawQuery, signature, key_id))) 
+              console.log('SSV signature check failed');
+        return res.status(403).send('invalid signature');
 
     // Only the "Watch & earn" button pays coins. Other rewarded ads are ignored here.
     if (custom_data !== 'earn' || !mongoose.isValidObjectId(user_id)) return res.status(200).send('ignored');
@@ -156,6 +163,36 @@ router.post('/unlock/:chapterId', requireAuth, async (req, res) => {
     if (err.code === 11000) return res.json({ unlocked: true });
     throw err;
   }
+});
+
+// POST /api/rewards/dev-credit
+// TESTING ONLY: Google's sample ads never trigger the verification callback.
+// Disabled unless ALLOW_DEV_REWARDS=true is set on the server.
+router.post('/dev-credit', requireAuth, async (req, res) => {
+  if (process.env.ALLOW_DEV_REWARDS !== 'true') return res.status(404).json({ message: 'Not found' });
+
+  const settings = await AppSettings.current();
+  if (!settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) {
+    return res.status(400).json({ message: 'Video rewards are turned off in the admin settings' });
+  }
+  const watchedToday = await CoinTransaction.countDocuments({
+    user: req.user.id, type: 'ad_reward', createdAt: { $gte: startOfTodayUtc() },
+  });
+  if (watchedToday >= settings.dailyRewardedAdLimit) {
+    return res.status(429).json({ message: 'Daily video limit reached' });
+  }
+  const last = await CoinTransaction.findOne({ user: req.user.id, type: 'ad_reward' }).sort({ createdAt: -1 }).select('createdAt');
+  if (last && Date.now() - last.createdAt.getTime() < settings.minSecondsBetweenAds * 1000) {
+    return res.status(429).json({ message: 'Please wait a moment before the next video' });
+  }
+
+  const coins = await creditCoins({
+    userId: req.user.id,
+    amount: settings.coinsPerRewardedAd,
+    type: 'ad_reward',
+    reference: `dev-${req.user.id}-${Date.now()}`,
+  });
+  res.json({ coins });
 });
 
 module.exports = router;

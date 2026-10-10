@@ -3,6 +3,7 @@ const AppSettings = require('../models/AppSettings');
 const CoinTransaction = require('../models/CoinTransaction');
 const User = require('../models/User');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { creditCoins } = require('../services/coins');
 
 const router = express.Router();
 
@@ -42,6 +43,19 @@ router.get('/rewards/stats', requireAuth, requireAdmin, async (req, res) => {
     coinsSpent: spent?.coins || 0,
     coinsHeldByUsers: held?.coins || 0,
   });
+});
+
+// POST /api/settings/rewards/grant  { email, coins, note }
+router.post('/rewards/grant', requireAuth, requireAdmin, async (req, res) => {
+  const { email, coins, note } = req.body;
+  const amount = Math.floor(Number(coins));
+  if (!email || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ message: 'Enter an email and a positive number of coins' });
+  }
+  const user = await User.findOne({ email: email.toLowerCase() }).select('_id');
+  if (!user) return res.status(404).json({ message: 'No user with that email' });
+  const balance = await creditCoins({ userId: user._id, amount, type: 'admin_adjustment', note: note || 'Granted by admin' });
+  res.json({ balance });
 });
 
 module.exports = router;
