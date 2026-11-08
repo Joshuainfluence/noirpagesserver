@@ -4,6 +4,11 @@ const appSettingsSchema = new mongoose.Schema(
   {
     key: { type: String, default: 'main', unique: true },
     rewardsEnabled: { type: Boolean, default: true },
+        adsEnabled: { type: Boolean, default: true },            // master switch for every ad
+    bannerAdsEnabled: { type: Boolean, default: true },
+    interstitialAdsEnabled: { type: Boolean, default: true },
+    chapterGateEnabled: { type: Boolean, default: true },
+    testCreditEnabled: { type: Boolean, default: false },    // testing only: credit coins for Google test ads
     coinsPerRewardedAd: { type: Number, default: 10, min: 0 },
     dailyRewardedAdLimit: { type: Number, default: 10, min: 1 },
     minSecondsBetweenAds: { type: Number, default: 30, min: 0 },

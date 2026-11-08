@@ -11,12 +11,35 @@ router.get('/rewards', requireAuth, requireAdmin, async (req, res) => {
   res.json(await AppSettings.current());
 });
 
+// router.put('/rewards', requireAuth, requireAdmin, async (req, res) => {
+//   const { rewardsEnabled, coinsPerRewardedAd, dailyRewardedAdLimit, minSecondsBetweenAds } = req.body;
+//   const settings = await AppSettings.current();
+
+//   if (typeof rewardsEnabled === 'boolean') settings.rewardsEnabled = rewardsEnabled;
+//   const numbers = { coinsPerRewardedAd, dailyRewardedAdLimit, minSecondsBetweenAds };
+//   for (const [field, value] of Object.entries(numbers)) {
+//     if (value === undefined) continue;
+//     const n = Number(value);
+//     if (!Number.isFinite(n) || n < 0) return res.status(400).json({ message: `${field} must be a positive number` });
+//     settings[field] = Math.floor(n);
+//   }
+//   await settings.save();
+//   res.json(settings);
+// });
+
 router.put('/rewards', requireAuth, requireAdmin, async (req, res) => {
-  const { rewardsEnabled, coinsPerRewardedAd, dailyRewardedAdLimit, minSecondsBetweenAds } = req.body;
   const settings = await AppSettings.current();
 
-  if (typeof rewardsEnabled === 'boolean') settings.rewardsEnabled = rewardsEnabled;
-  const numbers = { coinsPerRewardedAd, dailyRewardedAdLimit, minSecondsBetweenAds };
+  const flags = ['rewardsEnabled', 'adsEnabled', 'bannerAdsEnabled', 'interstitialAdsEnabled', 'chapterGateEnabled', 'testCreditEnabled'];
+  for (const flag of flags) {
+    if (typeof req.body[flag] === 'boolean') settings[flag] = req.body[flag];
+  }
+
+  const numbers = {
+    coinsPerRewardedAd: req.body.coinsPerRewardedAd,
+    dailyRewardedAdLimit: req.body.dailyRewardedAdLimit,
+    minSecondsBetweenAds: req.body.minSecondsBetweenAds,
+  };
   for (const [field, value] of Object.entries(numbers)) {
     if (value === undefined) continue;
     const n = Number(value);
@@ -56,6 +79,18 @@ router.post('/rewards/grant', requireAuth, requireAdmin, async (req, res) => {
   if (!user) return res.status(404).json({ message: 'No user with that email' });
   const balance = await creditCoins({ userId: user._id, amount, type: 'admin_adjustment', note: note || 'Granted by admin' });
   res.json({ balance });
+});
+
+// GET /api/settings/public
+router.get('/public', async (req, res) => {
+  const s = await AppSettings.current();
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    bannerAds: s.adsEnabled && s.bannerAdsEnabled,
+    interstitialAds: s.adsEnabled && s.interstitialAdsEnabled,
+    chapterGate: s.adsEnabled && s.chapterGateEnabled,
+    rewardedVideos: s.adsEnabled && s.rewardsEnabled,
+  });
 });
 
 module.exports = router;

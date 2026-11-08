@@ -69,7 +69,8 @@ router.get('/ssv', async (req, res) => {
     if (custom_data !== 'earn' || !mongoose.isValidObjectId(user_id)) return res.status(200).send('ignored');
 
     const settings = await AppSettings.current();
-    if (!settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) return res.status(200).send('rewards off');
+    // if (!settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) return res.status(200).send('rewards off');
+        if (!settings.adsEnabled || !settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) return res.status(200).send('rewards off');
 
     const watchedToday = await CoinTransaction.countDocuments({
       user: user_id, type: 'ad_reward', createdAt: { $gte: startOfTodayUtc() },
@@ -117,7 +118,8 @@ router.get('/wallet', requireAuth, async (req, res) => {
   res.json({
     coins: user.coins,
     lifetimeCoins: user.lifetimeCoins,
-    rewardsEnabled: settings.rewardsEnabled,
+    // rewardsEnabled: settings.rewardsEnabled,
+        rewardsEnabled: settings.adsEnabled && settings.rewardsEnabled,
     coinsPerAd: settings.coinsPerRewardedAd,
     dailyLimit: settings.dailyRewardedAdLimit,
     adsLeftToday: Math.max(0, settings.dailyRewardedAdLimit - watchedToday),
@@ -168,11 +170,42 @@ router.post('/unlock/:chapterId', requireAuth, async (req, res) => {
 // POST /api/rewards/dev-credit
 // TESTING ONLY: Google's sample ads never trigger the verification callback.
 // Disabled unless ALLOW_DEV_REWARDS=true is set on the server.
-router.post('/dev-credit', requireAuth, async (req, res) => {
-  if (process.env.ALLOW_DEV_REWARDS !== 'true') return res.status(404).json({ message: 'Not found' });
+// router.post('/dev-credit', requireAuth, async (req, res) => {
+//   if (process.env.ALLOW_DEV_REWARDS !== 'true') return res.status(404).json({ message: 'Not found' });
 
+//   const settings = await AppSettings.current();
+//   if (!settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) {
+//     return res.status(400).json({ message: 'Video rewards are turned off in the admin settings' });
+//   }
+//   const watchedToday = await CoinTransaction.countDocuments({
+//     user: req.user.id, type: 'ad_reward', createdAt: { $gte: startOfTodayUtc() },
+//   });
+//   if (watchedToday >= settings.dailyRewardedAdLimit) {
+//     return res.status(429).json({ message: 'Daily video limit reached' });
+//   }
+//   const last = await CoinTransaction.findOne({ user: req.user.id, type: 'ad_reward' }).sort({ createdAt: -1 }).select('createdAt');
+//   if (last && Date.now() - last.createdAt.getTime() < settings.minSecondsBetweenAds * 1000) {
+//     return res.status(429).json({ message: 'Please wait a moment before the next video' });
+//   }
+
+//   const coins = await creditCoins({
+//     userId: req.user.id,
+//     amount: settings.coinsPerRewardedAd,
+//     type: 'ad_reward',
+//     reference: `dev-${req.user.id}-${Date.now()}`,
+//   });
+//   res.json({ coins });
+// });
+
+
+// POST /api/rewards/dev-credit
+// TESTING ONLY: Google's sample ads never trigger the verification callback.
+router.post('/dev-credit', requireAuth, async (req, res) => {
   const settings = await AppSettings.current();
-  if (!settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) {
+  if (!settings.testCreditEnabled) {
+    return res.status(403).json({ message: 'Test credit is switched off. Turn on Test mode in the admin Rewards page.' });
+  }
+  if (!settings.adsEnabled || !settings.rewardsEnabled || settings.coinsPerRewardedAd <= 0) {
     return res.status(400).json({ message: 'Video rewards are turned off in the admin settings' });
   }
   const watchedToday = await CoinTransaction.countDocuments({
