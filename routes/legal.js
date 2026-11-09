@@ -3,7 +3,7 @@ const router = express.Router();
 
 const APP = 'Dark Desires';
 const DEVELOPER = process.env.DEVELOPER_NAME || 'The Dark Desires team';
-const EMAIL = process.env.SUPPORT_EMAIL || 'support@example.com';
+const EMAIL = process.env.SUPPORT_EMAIL || 'influencekizzy@gmail.com';
 const UPDATED = 'October 9, 2026';
 
 function page(title, body) {
