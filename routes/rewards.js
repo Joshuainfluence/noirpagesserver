@@ -13,23 +13,28 @@ const { isPremiumChapter } = require('../services/premium');
 const router = express.Router();
 
 // ---- AdMob server-side verification -------------------------------------
-const KEYS_URL = 'https://www.gstatic.com/admob/reward/verifier-keys.json';
-let keyCache = { keys: null, at: 0 };
+const KEYS_URLS = {
+  prod: 'https://www.gstatic.com/admob/reward/verifier-keys.json',
+  test: 'https://www.gstatic.com/admob/reward/verifier-keys-test.json',
+};
+const keyCache = { prod: { keys: null, at: 0 }, test: { keys: null, at: 0 } };
 
-async function getKeys(force = false) {
-  if (!force && keyCache.keys && Date.now() - keyCache.at < 6 * 3600 * 1000) return keyCache.keys;
-  const res = await fetch(KEYS_URL);
-  if (!res.ok) throw new Error('Could not fetch AdMob verifier keys');
+async function getKeys(set, force = false) {
+  const cache = keyCache[set];
+  if (!force && cache.keys && Date.now() - cache.at < 6 * 3600 * 1000) return cache.keys;
+  const res = await fetch(KEYS_URLS[set]);
+  if (!res.ok) throw new Error(`Could not fetch AdMob ${set} verifier keys (${res.status})`);
   const json = await res.json();
-  keyCache = { keys: json.keys, at: Date.now() };
-  return keyCache.keys;
+  keyCache[set] = { keys: json.keys, at: Date.now() };
+  return json.keys;
 }
 
-async function isValidSignature(rawQuery, signature, keyId) {
-  let keys = await getKeys();
+async function verifyWith(set, rawQuery, signature, keyId) {
+  let keys = await getKeys(set);
   let key = keys.find((k) => String(k.keyId) === String(keyId));
-  if (!key) {
-    keys = await getKeys(true); // keys rotate, so refresh once
+  // Keys rotate, so refresh once if the id is unknown (at most every 5 minutes).
+  if (!key && Date.now() - keyCache[set].at > 5 * 60 * 1000) {
+    keys = await getKeys(set, true);
     key = keys.find((k) => String(k.keyId) === String(keyId));
   }
   if (!key) return false;
@@ -44,6 +49,20 @@ async function isValidSignature(rawQuery, signature, keyId) {
   return verifier.verify(key.pem, sig);
 }
 
+// Returns 'prod' (a real reward), 'test' (AdMob's test button) or null (invalid).
+async function signatureKind(rawQuery, signature, keyId) {
+  try {
+    if (await verifyWith('prod', rawQuery, signature, keyId)) return 'prod';
+  } catch (e) {
+    console.log('SSV prod verify error:', e.message);
+  }
+  try {
+    if (await verifyWith('test', rawQuery, signature, keyId)) return 'test';
+  } catch (e) {
+    console.log('SSV test verify error:', e.message);
+  }
+  return null;
+}
 function startOfTodayUtc() {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
@@ -61,9 +80,11 @@ router.get('/ssv', async (req, res) => {
     const rawQuery = req.originalUrl.split('?')[1] || '';
     const { signature, key_id, user_id, transaction_id, custom_data } = req.query;
     if (!signature || !key_id || !transaction_id) return res.status(400).send('bad request');
-    if (!(await isValidSignature(rawQuery, signature, key_id))) 
-              console.log('SSV signature check failed');
-        return res.status(403).send('invalid signature');
+       const kind = await signatureKind(rawQuery, signature, key_id);
+    console.log('SSV signature kind:', kind, 'key_id:', key_id);
+    if (!kind) return res.status(403).send('invalid signature');
+    // AdMob's "Verify url" button sends test-signed callbacks. Answer OK, but never pay coins for them.
+    if (kind === 'test') return res.status(200).send('test callback ok');
 
     // Only the "Watch & earn" button pays coins. Other rewarded ads are ignored here.
     if (custom_data !== 'earn' || !mongoose.isValidObjectId(user_id)) return res.status(200).send('ignored');
