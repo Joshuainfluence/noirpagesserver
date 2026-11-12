@@ -12,6 +12,9 @@ const appSettingsSchema = new mongoose.Schema(
     coinsPerRewardedAd: { type: Number, default: 10, min: 0 },
     dailyRewardedAdLimit: { type: Number, default: 10, min: 1 },
     minSecondsBetweenAds: { type: Number, default: 30, min: 0 },
+        smartlinkEnabled: { type: Boolean, default: false },
+    smartlinkUrl: { type: String, default: '' },
+    smartlinkEveryNChapters: { type: Number, default: 1, min: 1 },
   },
   { timestamps: true }
 );

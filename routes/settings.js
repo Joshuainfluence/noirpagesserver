@@ -30,7 +30,7 @@ router.get('/rewards', requireAuth, requireAdmin, async (req, res) => {
 router.put('/rewards', requireAuth, requireAdmin, async (req, res) => {
   const settings = await AppSettings.current();
 
-  const flags = ['rewardsEnabled', 'adsEnabled', 'bannerAdsEnabled', 'interstitialAdsEnabled', 'chapterGateEnabled', 'testCreditEnabled'];
+  const flags = ['rewardsEnabled', 'adsEnabled', 'bannerAdsEnabled', 'interstitialAdsEnabled', 'chapterGateEnabled', 'smartlinkEnabled', 'testCreditEnabled'];
   for (const flag of flags) {
     if (typeof req.body[flag] === 'boolean') settings[flag] = req.body[flag];
   }
@@ -39,6 +39,7 @@ router.put('/rewards', requireAuth, requireAdmin, async (req, res) => {
     coinsPerRewardedAd: req.body.coinsPerRewardedAd,
     dailyRewardedAdLimit: req.body.dailyRewardedAdLimit,
     minSecondsBetweenAds: req.body.minSecondsBetweenAds,
+    smartlinkEveryNChapters: req.body.smartlinkEveryNChapters,
   };
   for (const [field, value] of Object.entries(numbers)) {
     if (value === undefined) continue;
@@ -46,6 +47,24 @@ router.put('/rewards', requireAuth, requireAdmin, async (req, res) => {
     if (!Number.isFinite(n) || n < 0) return res.status(400).json({ message: `${field} must be a positive number` });
     settings[field] = Math.floor(n);
   }
+  if (settings.smartlinkEveryNChapters < 1) settings.smartlinkEveryNChapters = 1;
+
+  if (req.body.smartlinkUrl !== undefined) {
+    const raw = String(req.body.smartlinkUrl).trim();
+    if (raw) {
+      let parsed;
+      try {
+        parsed = new URL(raw);
+      } catch (e) {
+        return res.status(400).json({ message: 'The Smartlink URL is not a valid link' });
+      }
+      if (parsed.protocol !== 'https:') {
+        return res.status(400).json({ message: 'The Smartlink URL must start with https://' });
+      }
+    }
+    settings.smartlinkUrl = raw;
+  }
+
   await settings.save();
   res.json(settings);
 });
@@ -90,6 +109,9 @@ router.get('/public', async (req, res) => {
     interstitialAds: s.adsEnabled && s.interstitialAdsEnabled,
     chapterGate: s.adsEnabled && s.chapterGateEnabled,
     rewardedVideos: s.adsEnabled && s.rewardsEnabled,
+    smartlink: s.adsEnabled && s.smartlinkEnabled && s.smartlinkUrl
+      ? { url: s.smartlinkUrl, everyNChapters: s.smartlinkEveryNChapters || 1 }
+      : null,
   });
 });
 

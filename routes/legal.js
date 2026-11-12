@@ -21,7 +21,7 @@ const privacy = `
   <li><strong>Account details:</strong> your email address and display name. If you sign in with Google we receive your Google email and name. Passwords are stored only in hashed form.</li>
   <li><strong>Reading activity:</strong> the stories and chapters you open, your bookmarks and your reading progress.</li>
   <li><strong>Coins:</strong> your coin balance and a log of coins you earned and spent.</li>
-  <li><strong>Device and advertising data:</strong> our advertising partner, Google AdMob, collects data such as your advertising ID, IP address and device information to show and measure ads.</li>
+  <li><strong>Device and advertising data:</strong> our advertising partner, Google AdMob, collects data such as your advertising ID, IP address and device information to show and measure ads. We may also show clearly labelled sponsored links from Adsterra. Tapping one opens the sponsor's website in a browser tab, where that website's own privacy practices apply.</li>
 </ul>
 
 <h2>How we use it</h2>
